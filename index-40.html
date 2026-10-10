@@ -1,0 +1,898 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>花札こいこい</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* 配置: 緑のフェルトの卓。上に相手、中央に場札と山、下に自分の手札。ロビーは卓の上に置いた規約カード。 */
+:root {
+  --felt: #0f3a31; --felt-deep: #0a2a23; --felt-lite: #17493e;
+  --paper: #f2ead4; --paper-edge: #d9ccaa; --ink: #1c1612;
+  --text: #ece5d0; --muted: #a9b8ac; --line: rgba(236, 229, 208, .18);
+  --shu: #c8321e; --shu-ink: #fff7e8; --gold: #d6a94a; --ai: #2b3a5e;
+  --panel: rgba(0, 0, 0, .24);
+  --serif: 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --sans: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--felt);
+  background-image:
+    radial-gradient(ellipse at 50% 30%, var(--felt-lite) 0%, transparent 62%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .018) 0 2px, transparent 2px 5px);
+  background-attachment: fixed;
+  color: var(--text); font: 15px/1.6 var(--sans);
+  padding-inline: 16px; padding-block: 12px 28px; min-height: 100%;
+}
+#app { max-width: 540px; margin-inline: auto; display: flex; flex-direction: column; gap: 12px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--serif); margin: 0; text-wrap: balance; }
+small, .muted { color: var(--muted); }
+
+/* ---------- 札 ---------- */
+.card {
+  --w: 46px; --mc: #444;
+  width: var(--w); aspect-ratio: 3 / 5; font-size: calc(var(--w) * .235);
+  position: relative; display: block; padding: 0; border: 0; border-radius: .5em; flex: none;
+  background: var(--paper); color: var(--ink); font-family: var(--serif); overflow: hidden;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .4), 0 3px 7px rgba(0, 0, 0, .38);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+[data-m="1"] { --mc: #2d6a3e; } [data-m="2"] { --mc: #b53a55; } [data-m="3"] { --mc: #c2587a; }
+[data-m="4"] { --mc: #6b4fa0; } [data-m="5"] { --mc: #3a4fa8; } [data-m="6"] { --mc: #b0245a; }
+[data-m="7"] { --mc: #a23a4a; } [data-m="8"] { --mc: #7a6a2a; } [data-m="9"] { --mc: #9a6b00; }
+[data-m="10"] { --mc: #c1441c; } [data-m="11"] { --mc: #2a7a74; } [data-m="12"] { --mc: #6a3f8a; }
+.card .mn { position: absolute; left: .35em; top: .2em; font: 700 .78em var(--sans); opacity: .65; }
+.card .ty { position: absolute; right: .35em; top: .2em; font-size: .75em; font-weight: 800; color: var(--mc); }
+.card .pl { position: absolute; left: 0; right: 0; bottom: .22em; text-align: center; font-weight: 800; font-size: 1.05em; color: var(--mc); letter-spacing: 0; }
+.card .big { position: absolute; inset: 0; display: grid; place-items: center; font-size: 2.3em; font-weight: 800; color: var(--mc); padding-bottom: .7em; }
+.card .pl.big { font-size: 2.1em; padding-bottom: .1em; inset: 0; bottom: 0; opacity: .85; }
+.card.ty-hikari { background: linear-gradient(180deg, #f8efcf, var(--paper) 60%); box-shadow: inset 0 0 0 .22em var(--gold), 0 1px 0 rgba(0, 0, 0, .4), 0 3px 7px rgba(0, 0, 0, .38); }
+.card .sun { position: absolute; left: 50%; top: 24%; width: 3.1em; aspect-ratio: 1; transform: translateX(-50%); border-radius: 50%; background: var(--shu); display: grid; place-items: center; }
+.card .sun b { color: var(--shu-ink); font-size: 1.7em; font-weight: 800; line-height: 1; }
+.card .rib { position: absolute; left: 50%; top: 10%; bottom: 24%; width: 1.9em; transform: translateX(-50%); border-radius: .15em; display: grid; place-items: center; background: #e7d9b4; border: 1px solid var(--paper-edge); }
+.card .rib.aka { background: var(--shu); border-color: var(--shu); }
+.card .rib.ao { background: var(--ai); border-color: var(--ai); }
+.card .rib.plain { background: linear-gradient(#e7d9b4, #e7d9b4); border-top: .35em solid var(--mc); }
+.card .rib b { writing-mode: vertical-rl; font-size: .8em; font-weight: 800; color: var(--shu-ink); white-space: nowrap; line-height: 1; }
+.card .rib b.t5 { font-size: .62em; }
+.card.back {
+  background: var(--shu); box-shadow: inset 0 0 0 .2em var(--paper), inset 0 0 0 .32em var(--shu), 0 3px 7px rgba(0, 0, 0, .38);
+  background-image: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, .22) 0 .9em, transparent .95em);
+}
+.card.sel { transform: translateY(-10px); box-shadow: 0 0 0 2px var(--gold), 0 8px 14px rgba(0, 0, 0, .45); }
+.card.hint { box-shadow: 0 0 0 2px var(--gold), 0 0 14px 2px rgba(214, 169, 74, .65); animation: pulse 1.1s ease-in-out infinite alternate; }
+.card.fx { box-shadow: 0 0 0 2px var(--shu), 0 0 12px 2px rgba(200, 50, 30, .7); }
+@keyframes pulse { to { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .card, .card.hint { animation: none; transition: none; } }
+
+/* ---------- 取り札(チップ) ---------- */
+.cap { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 10px; justify-content: start; align-items: start; }
+.cg { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cg .cl { font-size: .68rem; color: var(--muted); letter-spacing: .12em; }
+.cc { display: flex; flex-wrap: wrap; gap: 2px; max-width: 150px; }
+.cg.ty-kasu .cc { max-width: 190px; }
+.chip { width: 1.45rem; height: 1.8rem; border-radius: .22rem; background: var(--paper); color: var(--mc); display: grid; place-items: center; font: 800 .86rem/1 var(--serif); font-style: normal; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+.chip.ty-hikari { box-shadow: inset 0 0 0 2px var(--gold); }
+.chip.aka { background: var(--shu); color: var(--shu-ink); } .chip.ao { background: var(--ai); color: var(--shu-ink); }
+.chip.ty-kasu { opacity: .8; }
+.chip.fx { outline: 2px solid var(--shu); }
+.none { color: var(--muted); font-size: .8rem; }
+
+/* ---------- 共通パーツ ---------- */
+.btn { border: 1px solid var(--gold); background: transparent; color: var(--text); border-radius: .5rem; padding: .62rem 1.1rem; min-height: 44px; font-weight: 700; }
+.btn.pri { background: var(--shu); border-color: var(--shu); color: var(--shu-ink); }
+.btn.sm { min-height: 36px; padding: .3rem .8rem; font-size: .85rem; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: .75rem; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.err { color: #ffb4a6; font-size: .9rem; margin: 0; }
+.note { color: var(--muted); font-size: .85rem; margin: 0; }
+input[type=text] { background: rgba(0, 0, 0, .3); border: 1px solid var(--line); color: var(--text); border-radius: .5rem; padding: .6rem .8rem; min-height: 44px; font: inherit; width: 100%; }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
+
+/* ---------- タイトル ---------- */
+.title { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-block: 18px 6px; text-align: center; }
+.title h1 { font-size: 3.6rem; letter-spacing: .12em; line-height: 1.1; padding-left: .12em; }
+.title h1 span { color: var(--shu); }
+.title p { margin: 0; color: var(--muted); letter-spacing: .3em; font-size: .85rem; }
+.fan { display: flex; justify-content: center; margin-block: 6px 2px; }
+.fan .card { --w: 56px; margin-inline: 3px; }
+.fan .card:nth-child(1) { transform: rotate(-14deg) translateY(4px); } .fan .card:nth-child(2) { transform: rotate(-5deg); }
+.fan .card:nth-child(3) { transform: rotate(5deg); } .fan .card:nth-child(4) { transform: rotate(14deg) translateY(4px); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+.row > * { min-width: 0; }
+.codeIn { flex: 1 1 8rem; } .codeIn input { text-transform: uppercase; letter-spacing: .3em; text-align: center; font: 700 1.1rem var(--serif); }
+
+/* ---------- ロビー ---------- */
+.codeBox { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.code { font: 800 2.4rem/1 var(--serif); letter-spacing: .3em; padding-left: .3em; color: var(--gold); }
+.seats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seat { border: 1px dashed var(--line); border-radius: .6rem; padding: 8px 10px; min-height: 52px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.seat.on { border-style: solid; background: rgba(255, 255, 255, .04); }
+.seat b { overflow-wrap: anywhere; } .seat small { font-size: .75rem; }
+.rgroup { display: flex; flex-direction: column; gap: 2px; }
+.rgroup > h3 { font-size: 1rem; color: var(--gold); letter-spacing: .15em; margin-bottom: 4px; }
+.rrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+.rl { display: flex; flex-direction: column; min-width: 0; flex: 1 1 0; } .rl small { font-size: .76rem; line-height: 1.35; }
+.rl b { font-weight: 700; }
+.pts { color: var(--gold); font-weight: 700; font-size: .78rem; margin-left: .4em; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: .5rem; overflow: hidden; flex: none; }
+.seg button { background: transparent; border: 0; padding: .4rem .7rem; min-height: 38px; font-size: .82rem; border-left: 1px solid var(--line); }
+.seg button:first-child { border-left: 0; }
+.seg button.on { background: var(--shu); color: var(--shu-ink); font-weight: 700; }
+.seg button:disabled { cursor: default; }
+.tog { display: flex; align-items: center; gap: 8px; background: transparent; border: 0; padding: 4px 0; min-height: 38px; flex: none; min-width: 78px; justify-content: flex-end; }
+.tog i { width: 38px; height: 22px; border-radius: 11px; background: rgba(255, 255, 255, .16); position: relative; flex: none; transition: background .15s; }
+.tog i::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); transition: transform .15s; }
+.tog.on i { background: var(--shu); } .tog.on i::after { transform: translateX(16px); }
+.tog span { font-size: .8rem; width: 2.2em; text-align: left; }
+.tog:disabled { cursor: default; }
+
+/* ---------- 対局 ---------- */
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.round { font: 800 1.25rem var(--serif); letter-spacing: .1em; } .round small { font: 500 .8rem var(--sans); letter-spacing: 0; }
+.plate { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 8px 12px; border-radius: .7rem; background: var(--panel); border: 1px solid var(--line); }
+.plate.turn { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.plate .nm { font-weight: 700; overflow-wrap: anywhere; min-width: 0; }
+.plate .sc { font: 800 1.7rem/1 var(--serif); font-variant-numeric: tabular-nums; grid-row: span 2; align-self: center; }
+.plate .tg { display: flex; gap: 6px; flex-wrap: wrap; font-size: .76rem; color: var(--muted); }
+.tag { border: 1px solid var(--line); border-radius: 1rem; padding: 0 .55rem; } .tag.shu { background: var(--shu); border-color: var(--shu); color: var(--shu-ink); }
+.zone { display: flex; flex-direction: column; gap: 6px; }
+.oppHand { display: flex; gap: 3px; align-items: center; min-height: 40px; }
+.oppHand .card { --w: 24px; } .oppHand span { margin-left: 8px; font-size: .8rem; color: var(--muted); }
+.table { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: .9rem; background: var(--felt-deep); border: 1px solid var(--line); box-shadow: inset 0 2px 12px rgba(0, 0, 0, .45); }
+.pile { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; font-size: .75rem; color: var(--muted); }
+.pile .card { --w: 46px; } .pile .drawn { --w: 46px; }
+.field { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 0; min-width: 0; align-content: flex-start; min-height: 80px; }
+.field .card { --w: 46px; }
+.field .card.hint, .field button.card { cursor: pointer; }
+.msg { min-height: 2.6em; margin: 0; text-align: center; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.msg.me { color: var(--gold); }
+.hand { display: flex; gap: 4px; justify-content: center; padding-top: 12px; }
+.hand .card { --w: calc((min(100vw, 540px) - 32px - 28px) / 8); max-width: 62px; cursor: pointer; }
+.hand .card.fx { box-shadow: 0 0 0 2px var(--shu); }
+.yk { font-size: .8rem; color: var(--muted); min-height: 1.3em; margin: 0; }
+.yk b { color: var(--gold); }
+.log { font-size: .8rem; color: var(--muted); margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
+.sheet { background: #1b2a26; border: 1px solid var(--gold); border-radius: .9rem; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
+.sheet h2 { font-size: 1.45rem; letter-spacing: .08em; }
+.ylist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ylist li { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 3px 0; }
+.ylist li b { font-family: var(--serif); font-size: 1.05rem; } .ylist li span { font-variant-numeric: tabular-nums; color: var(--gold); font-weight: 700; }
+.mult { display: flex; gap: 6px; flex-wrap: wrap; } .mult .tag { color: var(--gold); border-color: var(--gold); }
+.total { font: 800 2.2rem/1.1 var(--serif); color: var(--gold); font-variant-numeric: tabular-nums; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .two .btn { width: 100%; }
+.score { display: grid; grid-template-columns: 1fr auto auto; gap: 2px 14px; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.score .h { color: var(--muted); font-size: .75rem; }
+.score .r { text-align: right; }
+@media (max-width: 380px) { .title h1 { font-size: 3rem; } .code { font-size: 2rem; } .cc { max-width: 120px; } }
+
+.card i, .card em { font-style: normal; }
+.card .pl.big .v { writing-mode: vertical-rl; font-size: .8em; letter-spacing: .05em; white-space: nowrap; line-height: 1; }
+
+.rrow.stack { flex-direction: column; align-items: stretch; gap: 6px; }
+.rrow.stack .seg { align-self: stretch; } .rrow.stack .seg button { flex: 1; }
+
+</style>
+<div id="app"></div>
+<script>
+/* ===== 花札 こいこい: ゲームエンジン(DOM非依存・2人対戦) ===== */
+const MONTHS = ['松', '梅', '桜', '藤', '菖蒲', '牡丹', '萩', '芒', '菊', '紅葉', '柳', '桐'];
+const CARDS = [];
+(function () {
+  const D = [
+    [['松に鶴', 'hikari', 'tsuru'], ['松に赤短', 'tan', 'aka'], ['松のカス', 'kasu'], ['松のカス', 'kasu']],
+    [['梅に鶯', 'tane', 'uguisu'], ['梅に赤短', 'tan', 'aka'], ['梅のカス', 'kasu'], ['梅のカス', 'kasu']],
+    [['桜に幕', 'hikari', 'maku'], ['桜に赤短', 'tan', 'aka'], ['桜のカス', 'kasu'], ['桜のカス', 'kasu']],
+    [['藤にホトトギス', 'tane', 'hototogisu'], ['藤に短冊', 'tan', ''], ['藤のカス', 'kasu'], ['藤のカス', 'kasu']],
+    [['菖蒲に八橋', 'tane', 'yatsuhashi'], ['菖蒲に短冊', 'tan', ''], ['菖蒲のカス', 'kasu'], ['菖蒲のカス', 'kasu']],
+    [['牡丹に蝶', 'tane', 'cho'], ['牡丹に青短', 'tan', 'ao'], ['牡丹のカス', 'kasu'], ['牡丹のカス', 'kasu']],
+    [['萩に猪', 'tane', 'ino'], ['萩に短冊', 'tan', ''], ['萩のカス', 'kasu'], ['萩のカス', 'kasu']],
+    [['芒に月', 'hikari', 'tsuki'], ['芒に雁', 'tane', 'kari'], ['芒のカス', 'kasu'], ['芒のカス', 'kasu']],
+    [['菊に盃', 'tane', 'sakazuki'], ['菊に青短', 'tan', 'ao'], ['菊のカス', 'kasu'], ['菊のカス', 'kasu']],
+    [['紅葉に鹿', 'tane', 'shika'], ['紅葉に青短', 'tan', 'ao'], ['紅葉のカス', 'kasu'], ['紅葉のカス', 'kasu']],
+    [['柳に小野道風', 'hikari', 'ame'], ['柳に燕', 'tane', 'tsubame'], ['柳に短冊', 'tan', ''], ['柳のカス', 'kasu']],
+    [['桐に鳳凰', 'hikari', 'houou'], ['桐のカス', 'kasu'], ['桐のカス', 'kasu'], ['桐のカス', 'kasu']]
+  ];
+  D.forEach((list, mi) => list.forEach((c, k) =>
+    CARDS.push({ id: mi * 4 + k, m: mi + 1, name: c[0], type: c[1], tag: c[2] || '' })));
+})();
+const SAKAZUKI = CARDS.find(c => c.tag === 'sakazuki').id;
+const TEYAKU_PTS = 6;
+
+/* ---------- ルール設定 ---------- */
+const DEFAULT_RULES = {
+  rounds: 3,            // 3 | 6 | 12 (何月戦まで行うか)
+  parentNext: 'winner', // 'winner' 勝者が親 | 'swap' 毎回交代
+  koiLimit: 0,          // 0 回数制限なし | 1 一度まで
+  koiBack: true,        // こいこいした相手に上がると得点2倍
+  double7: true,        // 7点以上で2倍
+  exhaust: 'draw',      // 手札が尽きたとき 'draw' 引き分け | 'koi' こいこいした人が得点
+  bonus: true,          // 赤短・青短・猪鹿蝶 に追加札を上乗せ加点
+  sakazukiKasu: true,   // 菊に盃をカス札にも数える
+  teyaku: false,        // 手四・くっつき(配札時に6点)
+  yaku: {
+    goko: true, shiko: true, ameshiko: true, sanko: true,
+    hanami: true, tsukimi: true, inoshikacho: true,
+    akatan: true, aotan: true, tane: true, tan: true, kasu: true
+  }
+};
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function normRules(r) {
+  const d = clone(DEFAULT_RULES);
+  if (!r) return d;
+  for (const k in r) {
+    if (k === 'yaku') Object.assign(d.yaku, r.yaku);
+    else if (k in d) d[k] = r[k];
+  }
+  return d;
+}
+
+/* ---------- 乱数・基本 ---------- */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffle(arr, rnd) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function other(s) { return s === 'a' ? 'b' : 'a'; }
+function sameMonth(field, card) { return field.filter(c => CARDS[c].m === CARDS[card].m); }
+
+/* ---------- 役と得点 ---------- */
+function scoreVariant(ids, R, asKasu) {
+  const cs = ids.map(i => CARDS[i]);
+  const Y = R.yaku, ys = [];
+  const has = t => cs.some(c => c.tag === t);
+  const add = (name, pts) => ys.push({ name, pts });
+  const sak = has('sakazuki');
+  const hik = cs.filter(c => c.type === 'hikari').length;
+  const rain = has('ame');
+  const n = hik - (rain ? 1 : 0); // 雨以外の光札
+  let lp = 0, ln = '';
+  const cand = (ok, p, nm) => { if (ok && p > lp) { lp = p; ln = nm; } };
+  cand(Y.goko && n === 4 && rain, 10, '五光');
+  cand(Y.shiko && n === 4, 8, '四光');
+  cand(Y.ameshiko && n === 3 && rain, 7, '雨四光');
+  cand(Y.sanko && n >= 3, 5, '三光');
+  if (lp) add(ln, lp);
+  if (Y.hanami && has('maku') && sak) add('花見で一杯', 5);
+  if (Y.tsukimi && has('tsuki') && sak) add('月見で一杯', 5);
+  const useKasu = asKasu && sak;
+  const tane = cs.filter(c => c.type === 'tane').length - (useKasu ? 1 : 0);
+  const tan = cs.filter(c => c.type === 'tan').length;
+  const kasu = cs.filter(c => c.type === 'kasu').length + (useKasu ? 1 : 0);
+  const extra = (k) => R.bonus ? Math.max(0, k - 3) : 0;
+  if (Y.inoshikacho && has('ino') && has('shika') && has('cho')) add('猪鹿蝶', 5 + extra(tane));
+  if (Y.akatan && cs.filter(c => c.tag === 'aka').length === 3) add('赤短', 5 + extra(tan));
+  if (Y.aotan && cs.filter(c => c.tag === 'ao').length === 3) add('青短', 5 + extra(tan));
+  if (Y.tane && tane >= 5) add('タネ', tane - 4);
+  if (Y.tan && tan >= 5) add('タン', tan - 4);
+  if (Y.kasu && kasu >= 10) add('カス', kasu - 9);
+  return { yaku: ys, raw: ys.reduce((a, y) => a + y.pts, 0) };
+}
+function calcScore(ids, rules) {
+  const R = rules && rules.yaku && 'rounds' in rules ? rules : normRules(rules);
+  const variants = R.sakazukiKasu && ids.includes(SAKAZUKI) ? [false, true] : [false];
+  let best = null;
+  for (const v of variants) {
+    const r = scoreVariant(ids, R, v);
+    if (!best || r.raw > best.raw) best = r;
+  }
+  best.doubled = R.double7 && best.raw >= 7;
+  best.pts = best.doubled ? best.raw * 2 : best.raw;
+  return best;
+}
+function teyakuOf(hand) {
+  const n = {};
+  hand.forEach(c => { const m = CARDS[c].m; n[m] = (n[m] || 0) + 1; });
+  const v = Object.values(n);
+  if (v.some(x => x === 4)) return '手四';
+  if (v.length === 4 && v.every(x => x === 2)) return 'くっつき';
+  return null;
+}
+
+/* ---------- 配札 ---------- */
+function maxSame(cards) {
+  const n = {}; let mx = 0;
+  for (const c of cards) { const m = CARDS[c].m; n[m] = (n[m] || 0) + 1; if (n[m] > mx) mx = n[m]; }
+  return mx;
+}
+function dealRound(rnd, R) {
+  for (;;) {
+    const deck = shuffle(Array.from({ length: 48 }, (_, i) => i), rnd);
+    const hand = { a: deck.splice(0, 8), b: deck.splice(0, 8) };
+    const field = deck.splice(0, 8);
+    if (maxSame(field) >= 4) continue;
+    if (!R.teyaku && (maxSame(hand.a) >= 4 || maxSame(hand.b) >= 4)) continue;
+    return { deck, hand, field };
+  }
+}
+function roundInit(parent, rnd, R) {
+  const d = dealRound(rnd, R);
+  return {
+    deck: d.deck, field: d.field, hand: d.hand, cap: { a: [], b: [] },
+    turn: parent, phase: 'hand', sel: null, drawn: null,
+    koi: { a: 0, b: 0 }, kc: { a: 0, b: 0 }, result: null, final: false, fx: []
+  };
+}
+function applyTeyaku(s, log, nm) {
+  if (!s.rules.teyaku) return s;
+  const ta = teyakuOf(s.hand.a), tb = teyakuOf(s.hand.b);
+  if (!ta && !tb) return s;
+  s.phase = 'roundEnd';
+  s.final = s.round >= s.rules.rounds;
+  if (ta && tb) {
+    s.result = { winner: null, pts: 0, raw: 0, doubled: false, back: false, teyaku: true, yaku: [] };
+    log('両者に手役(' + ta + '・' + tb + ')：引き分け');
+  } else {
+    const w = ta ? 'a' : 'b', nmY = ta || tb;
+    s.total[w] += TEYAKU_PTS;
+    s.result = { winner: w, pts: TEYAKU_PTS, raw: TEYAKU_PTS, doubled: false, back: false, teyaku: true, yaku: [{ name: '手役 ' + nmY, pts: TEYAKU_PTS }] };
+    log(nm(w) + 'の手役(' + nmY + ')で' + TEYAKU_PTS + '点');
+  }
+  return s;
+}
+function nmOf(s) { return x => (s.seats && s.seats[x] && s.seats[x].name) || (x === 'a' ? '先手' : '後手'); }
+function startRound(s, rnd, log, nm) {
+  Object.assign(s, roundInit(s.parent, rnd, s.rules));
+  return applyTeyaku(s, log, nm);
+}
+function newGame(code, seats, rules, rnd) {
+  rnd = rnd || Math.random;
+  const s = {
+    v: 2, code, seats, rules: normRules(rules), round: 1,
+    total: { a: 0, b: 0 }, parent: 'a', rev: 1, log: []
+  };
+  return startRound(s, rnd, m => s.log.push(m), nmOf(s));
+}
+
+/* ---------- 状態遷移 ---------- */
+function place(s, w, card, target, from, log, nm) {
+  const opts = sameMonth(s.field, card);
+  let group = null;
+  if (opts.length === 0) {
+    s.field.push(card);
+    s.fx = [card];
+    log(nm(w) + '：' + CARDS[card].name + 'を場に出した');
+  } else if (opts.length === 1) group = [card, opts[0]];
+  else if (opts.length === 3) group = [card].concat(opts);
+  else if (target != null) group = [card, target];
+  else {
+    s.sel = { card, opts, from };
+    s.phase = from === 'hand' ? 'pickHand' : 'pickDraw';
+    return s;
+  }
+  if (group) {
+    s.field = s.field.filter(x => !group.includes(x));
+    s.cap[w].push.apply(s.cap[w], group);
+    s.fx = group.slice();
+    log(nm(w) + 'が取った：' + group.map(g => CARDS[g].name).join(' + '));
+  }
+  if (from === 'hand') { s.phase = 'draw'; return s; }
+  return endTurn(s, w, log, nm);
+}
+function endTurn(s, w, log, nm) {
+  s.drawn = null;
+  const raw = calcScore(s.cap[w], s.rules).raw;
+  const empty = s.hand.a.length === 0 && s.hand.b.length === 0;
+  if (raw > s.koi[w]) {
+    if (empty) return finish(s, w, log, nm);
+    s.phase = 'decide';
+    return s;
+  }
+  return nextTurn(s, log, nm);
+}
+function nextTurn(s, log, nm) {
+  s.drawn = null;
+  if (s.hand.a.length === 0 && s.hand.b.length === 0) {
+    if (s.rules.exhaust === 'koi') {
+      const c = ['a', 'b'].filter(p => s.kc[p] > 0);
+      if (c.length) {
+        const w = c.reduce((x, y) => calcScore(s.cap[y], s.rules).pts > calcScore(s.cap[x], s.rules).pts ? y : x);
+        return finish(s, w, log, nm, true);
+      }
+    }
+    return finish(s, null, log, nm);
+  }
+  s.turn = other(s.turn);
+  s.phase = 'hand';
+  return s;
+}
+function finish(s, w, log, nm, noBack) {
+  s.phase = 'roundEnd'; s.sel = null; s.drawn = null;
+  s.final = s.round >= s.rules.rounds;
+  if (w) {
+    const sc = calcScore(s.cap[w], s.rules);
+    let pts = sc.pts, back = false;
+    if (s.rules.koiBack && !noBack && s.kc[other(w)] > 0) { pts *= 2; back = true; }
+    s.total[w] += pts;
+    s.result = { winner: w, pts, raw: sc.raw, doubled: sc.doubled, back, teyaku: false, yaku: sc.yaku };
+    log(nm(w) + 'が' + pts + '点を獲得');
+  } else {
+    s.result = { winner: null, pts: 0, raw: 0, doubled: false, back: false, teyaku: false, yaku: [] };
+    log('役ができないまま手札が尽きた：引き分け');
+  }
+  return s;
+}
+function reduceCore(state, act, rnd) {
+  const s = clone(state);
+  const w = s.turn;
+  const nm = nmOf(s);
+  const log = m => { s.log.push(m); while (s.log.length > 8) s.log.shift(); };
+  s.fx = [];
+  if (['play', 'pick', 'draw', 'koi', 'shobu'].includes(act.t) && act.by !== w) return null;
+  switch (act.t) {
+    case 'play': {
+      if (s.phase !== 'hand') return null;
+      const i = s.hand[w].indexOf(act.card);
+      if (i < 0) return null;
+      const opts = sameMonth(s.field, act.card);
+      if (act.target != null && !opts.includes(act.target)) return null;
+      s.hand[w].splice(i, 1);
+      return place(s, w, act.card, act.target, 'hand', log, nm);
+    }
+    case 'pick': {
+      if ((s.phase !== 'pickHand' && s.phase !== 'pickDraw') || !s.sel || !s.sel.opts.includes(act.target)) return null;
+      const card = s.sel.card, from = s.sel.from;
+      s.sel = null;
+      return place(s, w, card, act.target, from, log, nm);
+    }
+    case 'draw': {
+      if (s.phase !== 'draw' || !s.deck.length) return null;
+      const c = s.deck.shift();
+      s.drawn = c;
+      return place(s, w, c, null, 'draw', log, nm);
+    }
+    case 'koi': {
+      if (s.phase !== 'decide') return null;
+      if (s.rules.koiLimit === 1 && s.kc[w] >= 1) return null;
+      s.koi[w] = calcScore(s.cap[w], s.rules).raw;
+      s.kc[w]++;
+      log(nm(w) + 'は「こいこい」');
+      return nextTurn(s, log, nm);
+    }
+    case 'shobu': {
+      if (s.phase !== 'decide') return null;
+      log(nm(w) + 'は「勝負」');
+      return finish(s, w, log, nm);
+    }
+    case 'next': {
+      if (s.phase !== 'roundEnd') return null;
+      if (s.final) {
+        s.total = { a: 0, b: 0 }; s.round = 1; s.parent = 'a';
+      } else {
+        s.round++;
+        if (s.rules.parentNext === 'swap') s.parent = other(s.parent);
+        else if (s.result && s.result.winner) s.parent = s.result.winner;
+      }
+      s.log = [];
+      return startRound(s, rnd, log, nm);
+    }
+  }
+  return null;
+}
+function reduce(state, act, rnd) {
+  const r = reduceCore(state, act, rnd || Math.random);
+  if (r) r.rev = (state.rev || 0) + 1;
+  return r;
+}
+
+/* 画面側から使う補助: 自分が取れる場札の候補 */
+function matchesFor(state, card) { return sameMonth(state.field, card); }
+
+if (typeof module !== 'undefined') {
+  module.exports = { CARDS, MONTHS, DEFAULT_RULES, normRules, calcScore, teyakuOf, newGame, reduce, mulberry32, other, sameMonth, matchesFor, SAKAZUKI };
+}
+
+/* ===== 画面と通信(エンジンと同じスクリプト内で動く) ===== */
+(function () {
+  'use strict';
+  const $app = document.getElementById('app');
+  const MOTIF = { tsuru: '鶴', maku: '幕', tsuki: '月', ame: '雨', houou: '鳳', uguisu: '鶯', hototogisu: '鵑', yatsuhashi: '橋', cho: '蝶', ino: '猪', kari: '雁', sakazuki: '盃', shika: '鹿', tsubame: '燕' };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 保存できなくても動く */ } };
+
+  const S = {
+    db: null, me: null, canWrite: null, ready: false,
+    name: lsGet('hf_name'), codeIn: '', code: null, ref: null, unsub: null, room: null,
+    sel: null, err: '', busy: false, askLeave: false, copied: false, autoRev: -1, starting: false
+  };
+  const seatOf = r => {
+    if (!r || !r.seats) return null;
+    if (r.seats.a && r.seats.a.id === S.me) return 'a';
+    if (r.seats.b && r.seats.b.id === S.me) return 'b';
+    return null;
+  };
+  const canPlay = () => S.ready && S.db && S.me && S.canWrite !== false;
+  const writeMsg = e => {
+    const c = e && e.code;
+    if (c === 'invalid_argument') return '書き込めませんでした。このページの共有権限が「コントリビューター」以上か確認してください。';
+    if (c === 'quota_exceeded') return '保存できる量の上限に達しました。';
+    return '通信に失敗しました。もう一度試してください。';
+  };
+
+  /* ---------- 札の描画 ---------- */
+  function cardHTML(id, o) {
+    o = o || {};
+    const c = CARDS[id], plant = MONTHS[c.m - 1];
+    let inner;
+    if (c.type === 'hikari') inner = '<i class="sun"><b>' + MOTIF[c.tag] + '</b></i><span class="pl">' + plant + '</span><span class="ty">光</span>';
+    else if (c.type === 'tane') inner = '<b class="big">' + MOTIF[c.tag] + '</b><span class="pl">' + plant + '</span><span class="ty">種</span>';
+    else if (c.type === 'tan') {
+      const k = c.tag || 'plain';
+      const txt = k === 'ao' ? '青' : k === 'aka' ? (c.m === 3 ? 'みよしの' : 'あかよろし') : '';
+      inner = '<i class="rib ' + k + '"><b class="t' + txt.length + '">' + txt + '</b></i><span class="pl">' + plant + '</span><span class="ty">短</span>';
+    } else inner = '<span class="pl big"><span' + (plant.length > 1 ? ' class="v"' : '') + '>' + plant + '</span></span>';
+    const tag = o.btn ? 'button' : 'div';
+    return '<' + tag + ' class="card ty-' + c.type + ' ' + (o.cls || '') + '" data-m="' + c.m + '" data-id="' + id + '"' +
+      (o.btn ? ' type="button" data-a="' + o.a + '"' : '') + ' aria-label="' + c.name + '"><em class="mn">' + c.m + '</em>' + inner + '</' + tag + '>';
+  }
+  function chip(id, fx) {
+    const c = CARDS[id];
+    let t, k = '';
+    if (c.type === 'hikari' || c.type === 'tane') t = MOTIF[c.tag];
+    else if (c.type === 'tan') { t = '短'; k = c.tag; } else t = MONTHS[c.m - 1][0];
+    return '<i class="chip ty-' + c.type + ' ' + k + (fx.includes(id) ? ' fx' : '') + '" data-m="' + c.m + '" title="' + c.name + '">' + t + '</i>';
+  }
+  function capHTML(ids, fx) {
+    if (!ids.length) return '<span class="none">まだ取り札がありません</span>';
+    const gs = [['hikari', '光'], ['tane', '種'], ['tan', '短'], ['kasu', 'カス']];
+    return '<div class="cap">' + gs.map(([t, l]) => {
+      const list = ids.filter(i => CARDS[i].type === t).sort((a, b) => a - b);
+      return list.length ? '<div class="cg ty-' + t + '"><span class="cl">' + l + ' ' + list.length + '</span><div class="cc">' + list.map(i => chip(i, fx)).join('') + '</div></div>' : '';
+    }).join('') + '</div>';
+  }
+
+  /* ---------- ルール設定 UI ---------- */
+  const YAKU_UI = [
+    ['goko', '五光', '光札5枚', '10点'], ['shiko', '四光', '雨を除く光札4枚', '8点'],
+    ['ameshiko', '雨四光', '雨(柳)を含む光札4枚', '7点'], ['sanko', '三光', '雨を除く光札3枚', '5点'],
+    ['hanami', '花見で一杯', '桜に幕と菊に盃', '5点'], ['tsukimi', '月見で一杯', '芒に月と菊に盃', '5点'],
+    ['inoshikacho', '猪鹿蝶', '猪・鹿・蝶の3枚', '5点'], ['akatan', '赤短', '赤い短冊3枚', '5点'],
+    ['aotan', '青短', '青い短冊3枚', '5点'], ['tane', 'タネ', 'タネ札5枚から', '1点〜'],
+    ['tan', 'タン', '短冊札5枚から', '1点〜'], ['kasu', 'カス', 'カス札10枚から', '1点〜']
+  ];
+  const seg = (k, val, opts, off) => '<div class="seg" role="group">' + opts.map(([v, l]) => {
+    const on = String(v) === String(val);
+    return '<button type="button" class="' + (on ? 'on' : '') + '" data-a="rule" data-k="' + k + '" data-v="' + v + '" aria-pressed="' + on + '"' + (off ? ' disabled' : '') + '>' + l + '</button>';
+  }).join('') + '</div>';
+  const tog = (k, val, off, label) => '<button type="button" class="tog' + (val ? ' on' : '') + '" role="switch" aria-checked="' + !!val + '" aria-label="' + esc(label) + '" data-a="toggle" data-k="' + k + '"' + (off ? ' disabled' : '') + '><i></i><span>' + (val ? 'あり' : 'なし') + '</span></button>';
+  const row = (label, note, ctl, pts, stack) => '<div class="rrow' + (stack ? ' stack' : '') + '"><div class="rl"><b>' + label + (pts ? '<span class="pts">' + pts + '</span>' : '') + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
+  function rulesHTML(rules, host) {
+    const R = normRules(rules), off = !host;
+    const g1 = row('ゲーム数', '何月戦まで行うか', seg('rounds', R.rounds, [[3, '3回'], [6, '6回'], [12, '12回']], off)) +
+      row('次の親', '前の月の結果で決める', seg('parentNext', R.parentNext, [['winner', '勝った人'], ['swap', '交代']], off)) +
+      row('手役(手四・くっつき)', '配札で成立すると6点で終局', tog('teyaku', R.teyaku, off, '手役'));
+    const g2 = row('こいこいの回数', '', seg('koiLimit', R.koiLimit, [[0, '何度でも'], [1, '一度まで']], off)) +
+      row('こいこい返し', 'こいこいした相手に上がると得点2倍', tog('koiBack', R.koiBack, off, 'こいこい返し')) +
+      row('7点以上で2倍', '', tog('double7', R.double7, off, '7点以上で2倍')) +
+      row('手札が尽きたとき', '役ができないまま終わった場合', seg('exhaust', R.exhaust, [['draw', '引き分け'], ['koi', 'こいこいした人が得点']], off), '', true);
+    const g3 = YAKU_UI.map(y => row(y[1], y[2], tog('yaku.' + y[0], R.yaku[y[0]], off, y[1]), y[3])).join('');
+    const g4 = row('追加札の上乗せ', '赤短・青短・猪鹿蝶に、追加札1枚ごとに+1点', tog('bonus', R.bonus, off, '追加札の上乗せ')) +
+      row('菊に盃をカスにも数える', 'タネかカスのどちらか有利な方で数える', tog('sakazukiKasu', R.sakazukiKasu, off, '菊に盃をカスにも数える'));
+    const grp = (t, b) => '<section class="panel rgroup"><h3>' + t + '</h3>' + b + '</section>';
+    return grp('試合', g1) + grp('こいこい', g2) + grp('役', g3) + grp('加点', g4);
+  }
+
+  /* ---------- 画面 ---------- */
+  function leaveBtn() {
+    const host = S.room && seatOf(S.room) === 'a';
+    if (S.askLeave) return '<div class="row"><button class="btn sm pri" data-a="leaveYes">' + (host ? '部屋を閉じる' : '退出する') + '</button><button class="btn sm" data-a="leaveNo">戻る</button></div>';
+    return '<button class="btn sm" data-a="leaveAsk">' + (host ? '部屋を閉じる' : '退出') + '</button>';
+  }
+  function titleHTML() {
+    const warn = !S.ready ? '<p class="note">接続しています…</p>' :
+      !S.db ? '<p class="err">オンライン対戦は、公開したページとして開いたときに使えます。</p>' :
+      !S.me ? '<p class="err">サインインすると遊べます。</p>' :
+      S.canWrite === false ? '<p class="err">このページでは書き込みが許可されていません。共有の権限を「コントリビューター」以上にしてもらってください。</p>' : '';
+    const can = canPlay();
+    return '<div class="title"><h1>花<span>札</span></h1><p>こいこい ・ 二人対戦</p><div class="fan">' +
+      [0, 8, 32, 44].map(i => cardHTML(i)).join('') + '</div></div>' +
+      '<section class="panel">' + warn +
+      '<label class="f" for="nameIn">名前<input id="nameIn" type="text" maxlength="12" value="' + esc(S.name) + '" placeholder="あなたの名前" autocomplete="nickname"></label>' +
+      '<button class="btn pri" data-a="create"' + (can ? '' : ' disabled') + '>部屋を作る</button>' +
+      '<div class="row"><label class="f codeIn" for="codeIn">部屋コード<input id="codeIn" type="text" maxlength="4" value="' + esc(S.codeIn) + '" placeholder="ABCD" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>' +
+      '<button class="btn" data-a="join"' + (can ? '' : ' disabled') + '>部屋に入る</button></div>' +
+      (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '') + '</section>' +
+      '<p class="note">部屋を作った人がルールを決めます。友だちには4文字の部屋コードを伝えてください。友だちがこのページを開いて対戦するには、共有の権限が「コントリビューター」以上である必要があります。</p>';
+  }
+  function lobbyHTML() {
+    const r = S.room, me = seatOf(r), host = me === 'a';
+    const seat = k => {
+      const s = r.seats[k];
+      return '<div class="seat' + (s ? ' on' : '') + '">' + (s ? '<b>' + esc(s.name || '名無し') + '</b><small>' + (k === 'a' ? '部屋主' : '参加者') + (s.id === S.me ? '(あなた)' : '') + '</small>' : '<small>対戦相手を待っています…</small>') + '</div>';
+    };
+    const full = r.seats.a && r.seats.b;
+    return '<div class="bar"><h2>対局の準備</h2>' + leaveBtn() + '</div>' +
+      '<section class="panel"><div class="codeBox"><div><small>部屋コード</small><div class="code" id="code">' + esc(S.code) + '</div></div>' +
+      '<button class="btn sm" data-a="copy">' + (S.copied ? 'コピーしました' : 'コードをコピー') + '</button></div>' +
+      '<div class="seats">' + seat('a') + seat('b') + '</div></section>' +
+      rulesHTML(r.rules, host) +
+      (host ? '<button class="btn pri" data-a="start"' + (full && !S.starting ? '' : ' disabled') + '>' + (full ? '対局を始める' : '相手が入るのを待っています') + '</button>'
+        : '<p class="msg">部屋主がルールを決めて始めるのを待っています</p>') +
+      (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '');
+  }
+  function yakuLine(s) {
+    return s.yaku.length ? s.yaku.map(y => y.name + ' <b>' + y.pts + '</b>').join(' / ') + ' ＝ <b>' + s.raw + '点</b>' : '役はまだありません';
+  }
+  function gameHTML() {
+    const r = S.room, g = r.g, me = seatOf(r), op = other(me), R = g.rules;
+    const nm = x => (g.seats[x] && g.seats[x].name) || (x === me ? 'あなた' : '相手');
+    const over = g.phase === 'roundEnd';
+    const myTurn = g.turn === me && !over;
+    const sc = x => calcScore(g.cap[x], R);
+    const plate = x => '<div class="plate' + (g.turn === x && !over ? ' turn' : '') + '"><span class="nm">' + esc(nm(x)) + (x === me ? '(あなた)' : '') + '</span><span class="sc">' + g.total[x] + '</span><span class="tg">' +
+      (x === g.parent ? '<span class="tag shu">親</span>' : '') + (g.kc[x] ? '<span class="tag">こいこい×' + g.kc[x] + '</span>' : '') + '</span></div>';
+    let hints = [];
+    if (myTurn && g.phase === 'hand' && S.sel != null) hints = sameMonth(g.field, S.sel);
+    if (myTurn && (g.phase === 'pickHand' || g.phase === 'pickDraw') && g.sel) hints = g.sel.opts;
+    const fieldHTML = g.field.map(id => cardHTML(id, { btn: hints.includes(id), a: 'field', cls: (hints.includes(id) ? 'hint ' : '') + (g.fx.includes(id) ? 'fx' : '') })).join('') || '<span class="none">場札なし</span>';
+    let msg;
+    if (over) msg = '';
+    else if (g.phase === 'hand') msg = myTurn ? (S.sel == null ? '手札を1枚えらんでください' : sameMonth(g.field, S.sel).length === 2 ? '取りたい場札をタップしてください' : 'もう一度タップで出します') : nm(g.turn) + 'の番です';
+    else if (g.phase === 'draw') msg = myTurn ? '山札をめくっています…' : nm(g.turn) + 'が山札をめくります';
+    else if (g.phase === 'pickHand' || g.phase === 'pickDraw') msg = myTurn ? '取りたい場札をタップしてください' : nm(g.turn) + 'が札を選んでいます';
+    else msg = myTurn ? 'こいこい か 勝負 をえらんでください' : nm(g.turn) + 'が こいこい・勝負 を選んでいます';
+    const oppCards = g.hand[op].length;
+    const reveal = over && g.result && g.result.teyaku;
+    const oppHand = reveal ? g.hand[op].map(i => cardHTML(i, { cls: '' }).replace('class="card', 'style="--w:30px" class="card')).join('')
+      : Array.from({ length: oppCards }, () => '<div class="card back"></div>').join('');
+    const hand = g.hand[me].slice().sort((a, b) => a - b).map(id => cardHTML(id, { btn: myTurn && g.phase === 'hand', a: 'hand', cls: S.sel === id ? 'sel' : '' })).join('');
+    const sheet = over ? endSheet(g, me, nm) : (myTurn && g.phase === 'decide' ? decideSheet(g, me) : '');
+    const gone = !r.seats.a || !r.seats.b;
+    return '<div class="bar"><div class="round">' + g.round + '月戦 <small>/ 全' + R.rounds + '回</small></div>' + leaveBtn() + '</div>' +
+      (gone ? '<p class="err">相手が退出しました。ロビーに戻って、新しい相手を待てます。' + (me === 'a' ? ' <button class="btn sm" data-a="toLobby">ロビーへ</button>' : '') + '</p>' : '') +
+      '<div class="zone">' + plate(op) + '<div class="oppHand">' + oppHand + '<span>' + (reveal ? '' : '手札 ' + oppCards + '枚') + '</span></div>' + capHTML(g.cap[op], g.fx) +
+      (g.cap[op].length ? '<p class="yk">' + yakuLine(sc(op)) + '</p>' : '') + '</div>' +
+      '<div class="table"><div class="pile">' + (g.drawn != null ? cardHTML(g.drawn, { cls: 'fx' }) : '<div class="card back"></div>') + '<span>山札 ' + g.deck.length + '</span></div><div class="field">' + fieldHTML + '</div></div>' +
+      (sheet || '<p class="msg' + (myTurn ? ' me' : '') + '">' + msg + '</p>') +
+      '<div class="zone">' + capHTML(g.cap[me], g.fx) + (g.cap[me].length ? '<p class="yk">' + yakuLine(sc(me)) + '</p>' : '') + plate(me) + '</div>' +
+      '<div class="hand">' + hand + '</div>' +
+      '<ul class="log">' + g.log.slice(-3).map(l => '<li>' + esc(l) + '</li>').join('') + '</ul>' +
+      (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '');
+  }
+  function yakuList(ys) { return '<ul class="ylist">' + ys.map(y => '<li><b>' + esc(y.name) + '</b><span>' + y.pts + '点</span></li>').join('') + '</ul>'; }
+  function decideSheet(g, me) {
+    const R = g.rules, s = calcScore(g.cap[me], R);
+    const canKoi = !(R.koiLimit === 1 && g.kc[me] >= 1);
+    const back = R.koiBack && g.kc[other(me)] > 0;
+    return '<section class="sheet" aria-live="polite"><h2>役ができました</h2>' + yakuList(s.yaku) +
+      '<div class="mult">' + (s.doubled ? '<span class="tag">7点以上で2倍</span>' : '') + (back ? '<span class="tag">こいこい返しで2倍</span>' : '') + '</div>' +
+      '<div class="total">' + (s.pts * (back ? 2 : 1)) + '点</div>' +
+      '<div class="two"><button class="btn" data-a="koi"' + (canKoi ? '' : ' disabled') + '>こいこい</button><button class="btn pri" data-a="shobu">勝負</button></div>' +
+      (!canKoi ? '<p class="note">こいこいは一度までです。</p>' : R.koiBack ? '<p class="note">こいこいをすると、このあと相手に上がられたとき、相手の得点が2倍になります。</p>' : '') + '</section>';
+  }
+  function endSheet(g, me, nm) {
+    const res = g.result, R = g.rules;
+    let title = res.winner ? nm(res.winner) + 'の勝ち' : '引き分け';
+    const rowS = x => '<span>' + esc(nm(x)) + '</span><span class="r">' + (res.winner === x ? '+' + res.pts : '0') + '</span><span class="r">' + g.total[x] + '</span>';
+    let body = res.winner ? yakuList(res.yaku) + '<div class="mult">' + (res.doubled ? '<span class="tag">7点以上で2倍</span>' : '') + (res.back ? '<span class="tag">こいこい返しで2倍</span>' : '') + '</div><div class="total">+' + res.pts + '点</div>' : '<p class="note">' + (res.teyaku ? '両者に手役があったため、この月は引き分けです。' : 'どちらも役ができませんでした。') + '</p>';
+    let btns;
+    if (g.final) {
+      const d = g.total.a - g.total.b, w = d === 0 ? null : d > 0 ? 'a' : 'b';
+      title = w ? nm(w) + 'の優勝' : '全体で引き分け';
+      btns = '<div class="two"><button class="btn pri" data-a="next">同じルールでもう一度</button>' + (seatOf(S.room) === 'a' ? '<button class="btn" data-a="toLobby">ルールを変える</button>' : '<span></span>') + '</div>';
+    } else btns = '<button class="btn pri" data-a="next">' + (g.round + 1) + '月戦へ</button>';
+    return '<section class="sheet" aria-live="polite"><h2>' + esc(title) + '</h2>' + body +
+      '<div class="score"><span class="h"></span><span class="h r">今回</span><span class="h r">合計</span>' + rowS('a') + rowS('b') + '</div>' + btns + '</section>';
+  }
+
+  function render() {
+    $app.innerHTML = !S.room ? titleHTML() : !S.room.g ? lobbyHTML() : gameHTML();
+    afterRender();
+  }
+  function afterRender() {
+    const r = S.room;
+    if (!r || !r.g) return;
+    const g = r.g, me = seatOf(r);
+    const sh = $app.querySelector('.sheet');
+    if (sh && S.sheetRev !== g.rev) {
+      S.sheetRev = g.rev;
+      try { sh.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { /* 古い表示環境 */ }
+    }
+    if (g.phase === 'draw' && g.turn === me && S.autoRev !== g.rev) {
+      S.autoRev = g.rev;
+      const tryDraw = n => setTimeout(async () => {
+        if (!S.room || !S.room.g || S.room.g.rev !== g.rev || n > 6) return;
+        const ok = await act({ t: 'draw', by: me });
+        if (!ok) tryDraw(n + 1);
+      }, n ? 500 : 650);
+      tryDraw(0);
+    }
+  }
+
+  /* ---------- 通信 ---------- */
+  function detach() {
+    if (S.unsub) { try { S.unsub(); } catch (e) { /* 既に解除済み */ } }
+    S.unsub = null; S.ref = null; S.code = null; S.room = null; S.sel = null; S.askLeave = false; S.autoRev = -1;
+    lsSet('hf_room', '');
+  }
+  function attach(code, data) {
+    detach();
+    S.code = code; S.ref = S.db.doc('rooms/' + code); S.room = data; lsSet('hf_room', code);
+    S.unsub = S.ref.onSnapshot(snap => {
+      if (!snap.exists) { detach(); S.err = '部屋が閉じられました'; render(); return; }
+      S.room = snap.data();
+      const g = S.room.g, me = seatOf(S.room);
+      if (S.sel != null && !(g && g.turn === me && g.phase === 'hand' && g.hand[me].includes(S.sel))) S.sel = null;
+      render();
+    }, () => { S.err = '接続が切れました。ページを開き直してください。'; render(); });
+    render();
+  }
+  async function enterRoom(code, silent) {
+    const ref = S.db.doc('rooms/' + code);
+    const snap = await ref.get();
+    if (!snap.exists) { if (!silent) S.err = 'その部屋コードは見つかりません'; return false; }
+    let r = snap.data();
+    if (!seatOf(r)) {
+      if (silent) return false;
+      if (r.seats && r.seats.b) { S.err = 'この部屋は満員です'; return false; }
+      if (r.g) { S.err = 'この部屋はすでに対局が始まっています'; return false; }
+      await ref.update({ seats: { b: { id: S.me, name: (S.name || '').trim() || 'プレイヤー' } } });
+      r = (await ref.get()).data();
+      if (!(r.seats.b && r.seats.b.id === S.me)) { S.err = '他の人が先に入りました'; return false; }
+    }
+    attach(code, r);
+    return true;
+  }
+  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const genCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+  async function act(a) {
+    if (S.busy || !S.ref || !S.room || !S.room.g) return false;
+    S.busy = true;
+    let ok = false;
+    try {
+      const cur = (await S.ref.get()).data();
+      if (cur && cur.g && cur.g.rev === S.room.g.rev) {
+        const n = reduce(cur.g, a, Math.random);
+        if (n) { await S.ref.set(Object.assign({}, cur, { g: n })); ok = true; }
+      }
+    } catch (e) { S.err = writeMsg(e); render(); }
+    S.busy = false;
+    return ok;
+  }
+  async function patchRoom(fn) {
+    try {
+      const cur = (await S.ref.get()).data();
+      await S.ref.set(Object.assign({}, cur, fn(cur)));
+    } catch (e) { S.err = writeMsg(e); render(); }
+  }
+
+  /* ---------- 操作 ---------- */
+  const H = {
+    async create() {
+      S.err = ''; if (!canPlay()) return;
+      const name = (S.name || '').trim() || 'プレイヤー';
+      try {
+        for (let i = 0; i < 6; i++) {
+          const code = genCode(), ref = S.db.doc('rooms/' + code);
+          if ((await ref.get()).exists) continue;
+          const data = { code, host: S.me, seats: { a: { id: S.me, name }, b: null }, rules: normRules(), g: null, created: Date.now() };
+          await ref.set(data);
+          attach(code, data);
+          return;
+        }
+        S.err = '部屋を作れませんでした。もう一度試してください。';
+      } catch (e) { S.err = writeMsg(e); }
+      render();
+    },
+    async join() {
+      S.err = ''; if (!canPlay()) return;
+      const code = (S.codeIn || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (code.length !== 4) { S.err = '4文字の部屋コードを入れてください'; render(); return; }
+      try { if (!(await enterRoom(code, false))) render(); } catch (e) { S.err = writeMsg(e); render(); }
+    },
+    copy() {
+      const done = () => { S.copied = true; render(); setTimeout(() => { S.copied = false; if (S.room && !S.room.g) render(); }, 1800); };
+      try { navigator.clipboard.writeText(S.code).then(done, () => selectCode()); } catch (e) { selectCode(); }
+    },
+    async start() {
+      if (S.starting) return;
+      S.starting = true; S.err = ''; render();
+      await patchRoom(cur => {
+        if (!(cur.seats.a && cur.seats.b)) return {};
+        return { g: newGame(cur.code, { a: { name: cur.seats.a.name }, b: { name: cur.seats.b.name } }, cur.rules) };
+      });
+      S.starting = false; render();
+    },
+    async rule(t) {
+      if (seatOf(S.room) !== 'a') return;
+      const k = t.dataset.k, raw = t.dataset.v, v = isNaN(+raw) ? raw : +raw;
+      await patchRoom(cur => { const rules = normRules(cur.rules); rules[k] = v; return { rules }; });
+    },
+    async toggle(t) {
+      if (seatOf(S.room) !== 'a') return;
+      const k = t.dataset.k;
+      await patchRoom(cur => {
+        const rules = normRules(cur.rules);
+        if (k.indexOf('yaku.') === 0) rules.yaku[k.slice(5)] = !rules.yaku[k.slice(5)]; else rules[k] = !rules[k];
+        return { rules };
+      });
+    },
+    hand(t) {
+      const g = S.room && S.room.g, me = seatOf(S.room);
+      if (!g || g.turn !== me || g.phase !== 'hand') return;
+      const id = +t.dataset.id;
+      if (S.sel === id) {
+        if (sameMonth(g.field, id).length === 2) return;
+        S.sel = null; act({ t: 'play', by: me, card: id, target: null });
+      } else { S.sel = id; render(); }
+    },
+    field(t) {
+      const g = S.room && S.room.g, me = seatOf(S.room);
+      if (!g || g.turn !== me) return;
+      const id = +t.dataset.id;
+      if (g.phase === 'pickHand' || g.phase === 'pickDraw') { if (g.sel && g.sel.opts.includes(id)) act({ t: 'pick', by: me, target: id }); return; }
+      if (g.phase === 'hand' && S.sel != null) {
+        const o = sameMonth(g.field, S.sel);
+        if (o.includes(id)) { const card = S.sel; S.sel = null; act({ t: 'play', by: me, card, target: o.length === 2 ? id : null }); }
+      }
+    },
+    koi() { act({ t: 'koi', by: seatOf(S.room) }); },
+    shobu() { act({ t: 'shobu', by: seatOf(S.room) }); },
+    next() { act({ t: 'next' }); },
+    toLobby() { patchRoom(() => ({ g: null })); },
+    leaveAsk() { S.askLeave = true; render(); },
+    leaveNo() { S.askLeave = false; render(); },
+    async leaveYes() {
+      const ref = S.ref, me = seatOf(S.room);
+      try {
+        if (ref && me === 'a') await ref.delete();
+        else if (ref && me === 'b') await ref.update({ seats: { b: null } });
+      } catch (e) { /* 退出は続行 */ }
+      detach(); S.err = ''; render();
+    }
+  };
+  function selectCode() {
+    const el = document.getElementById('code');
+    if (!el) return;
+    const rg = document.createRange(); rg.selectNodeContents(el);
+    const s = window.getSelection(); s.removeAllRanges(); s.addRange(rg);
+  }
+  $app.addEventListener('click', e => {
+    const t = e.target.closest('[data-a]');
+    if (t && H[t.dataset.a] && !t.disabled) H[t.dataset.a](t);
+  });
+  $app.addEventListener('input', e => {
+    if (e.target.id === 'nameIn') { S.name = e.target.value; lsSet('hf_name', S.name); }
+    if (e.target.id === 'codeIn') { S.codeIn = e.target.value.toUpperCase(); e.target.value = S.codeIn; }
+  });
+  $app.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'codeIn') H.join(); });
+
+  /* ---------- 起動 ---------- */
+  async function boot() {
+    render();
+    try {
+      if (window.claude && window.claude.use) {
+        S.db = await window.claude.use('db');
+        const user = await window.claude.use('user');
+        if (user) { S.me = await user.id(); S.canWrite = await user.can('data.write'); }
+      }
+    } catch (e) { /* 利用できない場合はタイトルに案内を出す */ }
+    S.ready = true;
+    const last = lsGet('hf_room');
+    if (last && S.db && S.me) {
+      try { if (await enterRoom(last, true)) return; } catch (e) { /* タイトルへ */ }
+      lsSet('hf_room', '');
+    }
+    render();
+  }
+  boot();
+})();
+
+</script>
+
+</body></html>
