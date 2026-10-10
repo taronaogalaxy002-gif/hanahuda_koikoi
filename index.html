@@ -873,21 +873,39 @@ if (typeof module !== 'undefined') {
   $app.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'codeIn') H.join(); });
 
   /* ---------- 起動 ---------- */
+    // 📌 【差し替え用】PeerJS通信の本体
+  let peer = null;
+  let conn = null;
+
+  async function initPeer(customId) {
+    return new Promise((resolve) => {
+      const id = customId ? 'HF-' + customId : 'HF-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+      peer = new Peer(id);
+      peer.on('open', (assignedId) => {
+        S.me = assignedId;
+        S.ready = true;
+        resolve(assignedId);
+      });
+      peer.on('connection', (c) => {
+        conn = c;
+        setupConnection();
+      });
+    });
+  }
+
+  function setupConnection() {
+    conn.on('data', (data) => {
+      // 相手から送られてきたゲームデータを反映して画面を更新
+      S.room = data;
+      render();
+    });
+  }
+
+  // 📌 従来の boot() をこれに差し替える
   async function boot() {
     render();
-    try {
-      if (window.claude && window.claude.use) {
-        S.db = await window.claude.use('db');
-        const user = await window.claude.use('user');
-        if (user) { S.me = await user.id(); S.canWrite = await user.can('data.write'); }
-      }
-    } catch (e) { /* 利用できない場合はタイトルに案内を出す */ }
+    await initPeer();
     S.ready = true;
-    const last = lsGet('hf_room');
-    if (last && S.db && S.me) {
-      try { if (await enterRoom(last, true)) return; } catch (e) { /* タイトルへ */ }
-      lsSet('hf_room', '');
-    }
     render();
   }
   boot();
